@@ -4,6 +4,7 @@ import { loadConfig } from "./config.js";
 import { createPgDb, type Db } from "./db/db.js";
 import { MIGRATIONS_DIR } from "./db/migrate.js";
 import type { AppContext } from "./discord/context.js";
+import { GuildAllowlist } from "./discord/guildAllowlist.js";
 import { Publisher } from "./discord/publisher.js";
 import { createInteractionHandler } from "./discord/router.js";
 import { startHealthServer } from "./health.js";
@@ -59,11 +60,13 @@ async function main(): Promise<void> {
   const ctx: AppContext = { db, publisher, access, log: logger, now: () => new Date() };
   const scheduler = new Scheduler(ctx, config.schedulerIntervalSeconds * 1000);
 
-  const handleInteraction = createInteractionHandler(ctx);
+  const allowlist = new GuildAllowlist(config.allowedGuildIds);
+  const handleInteraction = createInteractionHandler(ctx, allowlist);
   client.on(Events.InteractionCreate, (interaction) => void handleInteraction(interaction));
+  client.on(Events.GuildCreate, (guild) => void allowlist.enforce(guild, logger));
   client.once(Events.ClientReady, (c) => {
-    logger.info({ user: c.user.tag, guilds: c.guilds.cache.size }, "discord ready");
-    scheduler.start();
+    logger.info({ user: c.user.tag, guilds: c.guilds.cache.size, allowedGuilds: config.allowedGuildIds.length || "any" }, "discord ready");
+    void allowlist.enforceAll(c, logger).then(() => scheduler.start());
   });
   client.on(Events.ShardDisconnect, (_event, shardId) => logger.warn({ shardId }, "gateway disconnected"));
   client.on(Events.ShardResume, (shardId) => logger.info({ shardId }, "gateway resumed"));

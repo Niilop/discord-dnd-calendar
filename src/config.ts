@@ -5,6 +5,8 @@ export interface Config {
   devGuildId: string | undefined;
   /** Discord user IDs with full access on every server the bot is in. */
   botAdminUserIds: string[];
+  /** Servers the bot may be in; empty = any. It leaves and ignores the rest. */
+  allowedGuildIds: string[];
   databaseUrl: string;
   logLevel: string;
   healthPort: number;
@@ -25,10 +27,10 @@ function integer(env: NodeJS.ProcessEnv, name: string, fallback: number): number
   return value;
 }
 
-function userIds(env: NodeJS.ProcessEnv, name: string): string[] {
+function discordIds(env: NodeJS.ProcessEnv, name: string, what: "user" | "server"): string[] {
   const ids = (env[name] ?? "").split(/[\s,]+/).filter(Boolean);
   const bad = ids.find((id) => !/^\d{15,21}$/.test(id));
-  if (bad) throw new Error(`${name} must be Discord user IDs separated by commas; "${bad}" isn't one`);
+  if (bad) throw new Error(`${name} must be Discord ${what} IDs separated by commas; "${bad}" isn't one`);
   return ids;
 }
 
@@ -41,7 +43,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     discordToken: required(env, "DISCORD_TOKEN"),
     discordApplicationId: required(env, "DISCORD_APPLICATION_ID"),
     devGuildId: env.DISCORD_DEV_GUILD_ID?.trim() || undefined,
-    botAdminUserIds: userIds(env, "BOT_ADMIN_USER_IDS"),
+    botAdminUserIds: discordIds(env, "BOT_ADMIN_USER_IDS", "user"),
+    allowedGuildIds: discordIds(env, "ALLOWED_GUILD_IDS", "server"),
     databaseUrl: loadDatabaseUrl(env),
     logLevel: env.LOG_LEVEL?.trim() || "info",
     healthPort: integer(env, "HEALTH_PORT", 8080),

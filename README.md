@@ -78,6 +78,7 @@ Every mutation re-checks permission against the current database state and the m
 3. Invite it with the `bot` and `applications.commands` scopes and these permissions: View Channels, Send Messages, Embed Links, Read Message History (permission integer `84992`):
    `https://discord.com/oauth2/authorize?client_id=<APP_ID>&scope=bot+applications.commands&permissions=84992`
 4. Make sure the bot can post in the calendar and RSVP channels. `/campaign create` checks this.
+5. For a private bot, turn **Public Bot** off (Developer Portal → Bot) so only you can add it to servers. As a second lock, set `ALLOWED_GUILD_IDS` in `.env` to your servers' IDs: the bot then leaves any other server right away and ignores commands from it.
 
 ## Local development
 

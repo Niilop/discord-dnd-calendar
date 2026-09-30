@@ -1,13 +1,14 @@
 import { DiscordAPIError, MessageFlags, RESTJSONErrorCodes, type Interaction } from "discord.js";
 import { UserError } from "../domain/errors.js";
 import type { AppContext } from "./context.js";
+import type { GuildAllowlist } from "./guildAllowlist.js";
 import { commands } from "./commands/index.js";
 import { handleComponent } from "./components/index.js";
 
 const byName = new Map(commands.map((c) => [c.name, c]));
 
 /** Entry point for every interaction: dispatch, time, and turn errors into friendly replies. */
-export function createInteractionHandler(ctx: AppContext) {
+export function createInteractionHandler(ctx: AppContext, allowlist: Pick<GuildAllowlist, "isAllowed">) {
   return async (interaction: Interaction): Promise<void> => {
     const started = Date.now();
     const log = ctx.log.child({
@@ -22,6 +23,13 @@ export function createInteractionHandler(ctx: AppContext) {
       if (!interaction.inCachedGuild()) {
         if (interaction.isRepliable()) {
           await interaction.reply({ flags: MessageFlags.Ephemeral, content: "Please use this bot inside a server." });
+        }
+        return;
+      }
+      if (!allowlist.isAllowed(interaction.guildId)) {
+        log.warn("interaction from a server that isn't in ALLOWED_GUILD_IDS");
+        if (interaction.isRepliable()) {
+          await interaction.reply({ flags: MessageFlags.Ephemeral, content: "This bot isn't enabled for this server." });
         }
         return;
       }
