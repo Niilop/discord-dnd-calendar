@@ -1,0 +1,7 @@
+# Local development only: exposes Postgres on localhost:5433 so `npm run dev`
+# on the host can reach it.
+#   docker compose -f docker-compose.yml -f compose.dev.yml up -d postgres
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5433:5432"

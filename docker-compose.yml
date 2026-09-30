@@ -1,0 +1,45 @@
+# Production stack: the bot and PostgreSQL on one host.
+# On the server, run compose through scripts/compose.sh so the deployed image
+# tag (.deploy/image.env) is used. Locally, `docker compose up --build` works.
+name: dnd-calendar
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dnd_calendar
+      POSTGRES_USER: dnd
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dnd -d dnd_calendar"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    shm_size: 128mb
+    # Not published to the host; only the bot (and `docker compose exec`) can reach it.
+    logging: *logging
+
+  bot:
+    image: ${BOT_IMAGE:-dnd-calendar-bot:local}
+    build: .
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file: .env
+    environment:
+      DATABASE_URL: postgres://dnd:${POSTGRES_PASSWORD}@postgres:5432/dnd_calendar
+    stop_grace_period: 30s
+    logging: *logging
+
+volumes:
+  pgdata:
