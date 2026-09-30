@@ -14,7 +14,7 @@ export async function handleRsvp(
   id: Extract<CustomId, { kind: "rsvp" }>,
   ctx: AppContext,
 ): Promise<void> {
-  const { session, campaign, previous } = await respondToSession(ctx.db, actorFrom(i), id.sessionId, id.status, ctx.now());
+  const { session, campaign, previous } = await respondToSession(ctx.db, actorFrom(i, ctx), id.sessionId, id.status, ctx.now());
   await i.deferUpdate();
   if (previous !== id.status) {
     await ctx.publisher.syncSessionCard(session.id, { refresh: true });

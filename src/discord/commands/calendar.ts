@@ -31,13 +31,26 @@ const data = new SlashCommandBuilder()
       .setDescription("Show a month of the calendar (only visible to you)")
       .addStringOption((o) => o.setName("month").setDescription("YYYY-MM, defaults to this month")),
   )
-  .addSubcommand((s) => s.setName("refresh").setDescription("Re-post or refresh the calendar message (DMs/admins)"));
+  .addSubcommand((s) => s.setName("refresh").setDescription("Re-post or refresh the calendar message (DMs/admins)"))
+  .addSubcommand((s) =>
+    s
+      .setName("manager-add")
+      .setDescription("Give someone full calendar rights on this server, like a server admin (admins/managers)")
+      .addUserOption((o) => o.setName("user").setDescription("Who").setRequired(true)),
+  )
+  .addSubcommand((s) =>
+    s
+      .setName("manager-remove")
+      .setDescription("Take calendar manager rights away (admins/managers)")
+      .addUserOption((o) => o.setName("user").setDescription("Who").setRequired(true)),
+  )
+  .addSubcommand((s) => s.setName("managers").setDescription("Who can manage the calendar besides server admins"));
 
 export const calendarCommand: SlashCommand = {
   name: data.name,
   toJSON: () => data.toJSON(),
   async execute(i, ctx) {
-    const actor = actorFrom(i);
+    const actor = actorFrom(i, ctx);
     switch (i.options.getSubcommand()) {
       case "setup": {
         const channel = i.options.getChannel("channel", true, TEXT_CHANNEL_TYPES);
@@ -78,6 +91,34 @@ export const calendarCommand: SlashCommand = {
           throw new UserError(`I couldn't update the calendar in <#${settings?.calendarChannelId}>. Check my permissions there.`);
         }
         await i.editReply(`✅ Calendar refreshed: ${messageUrl(i.guildId, settings.calendarMessageChannelId, settings.calendarMessageId)}`);
+        return;
+      }
+      case "manager-add": {
+        const user = i.options.getUser("user", true);
+        if (user.bot) throw new UserError("A bot can't be a calendar manager.");
+        await ctx.access.addManager(ctx.db, actor, user.id);
+        await i.reply({ ...ephemeral, content: `✅ <@${user.id}> can now manage the calendar, campaigns and sessions on this server.` });
+        return;
+      }
+      case "manager-remove": {
+        const user = i.options.getUser("user", true);
+        await ctx.access.removeManager(ctx.db, actor, user.id);
+        const stillAdmin = ctx.access.isBotAdmin(user.id) ? " They're still a bot admin (set on the host)." : "";
+        await i.reply({ ...ephemeral, content: `✅ <@${user.id}> is no longer a calendar manager.${stillAdmin}` });
+        return;
+      }
+      case "managers": {
+        const { managers, botAdmins } = await ctx.access.listManagers(ctx.db, i.guildId);
+        const list = (ids: string[]) => (ids.length ? ids.map((id) => `<@${id}>`).join(", ") : "none");
+        await i.reply({
+          ...ephemeral,
+          content: [
+            `**Calendar managers:** ${list(managers)}`,
+            `**Bot admins** (set on the host): ${list(botAdmins)}`,
+            "Server admins (Manage Server) always have full access too.",
+          ].join("\n"),
+          allowedMentions: { parse: [] },
+        });
         return;
       }
       default:

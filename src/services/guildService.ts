@@ -26,7 +26,7 @@ export async function setupServerCalendar(
   actor: Actor,
   input: { timezone: string; calendarChannelId: string },
 ): Promise<GuildSettings & { timezoneChanged: boolean }> {
-  if (!actor.isGuildAdmin) throw new PermissionDeniedError("Only server administrators can set up the calendar.");
+  if (!actor.isGuildAdmin) throw new PermissionDeniedError("Only server admins and calendar managers can set up the calendar.");
   const timezone = assertTimezone(input.timezone);
   return db.transaction(async (tx) => {
     const previous = await findGuildSettings(tx, actor.guildId);

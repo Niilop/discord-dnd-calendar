@@ -15,7 +15,7 @@ const stateOf = ({ campaignId, month, mask }: BulkState): BulkState => ({ campai
 
 /** Create (in the calendar's Add sessions mode) asks for the start time, prefilled with what the campaign used last. */
 export async function handleBulkGo(i: ButtonInteraction<"cached">, id: BulkState, ctx: AppContext) {
-  const { campaign } = await authorize(ctx.db, actorFrom(i), id.campaignId, "session.create");
+  const { campaign } = await authorize(ctx.db, actorFrom(i, ctx), id.campaignId, "session.create");
   const today = todayIn(campaign.timezone, ctx.now());
   const days = datesInMask(id.month, id.mask).filter((d) => d >= today);
   if (!days.length) throw new UserError("Pick at least one day in the menu first.");
@@ -26,7 +26,7 @@ export async function handleBulkGo(i: ButtonInteraction<"cached">, id: BulkState
 /** Creates every picked session in one transaction, then redraws the calendar with them on it. */
 export async function handleBulkCreate(i: ModalSubmitInteraction<"cached">, id: BulkState, ctx: AppContext) {
   if (!i.isFromMessage()) throw new UserError("This form has expired. Open Add sessions again.");
-  const actor = actorFrom(i);
+  const actor = actorFrom(i, ctx);
   const { hour, minute } = parseLocalTime(i.fields.getTextInputValue(BULK_MODAL_FIELDS.time));
   const time = `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
   const dates = datesInMask(id.month, id.mask);

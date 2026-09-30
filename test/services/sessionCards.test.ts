@@ -6,6 +6,7 @@ import type { AppContext } from "../../src/discord/context.js";
 import { Publisher } from "../../src/discord/publisher.js";
 import { logger } from "../../src/logger.js";
 import { completeSessionsTask, sessionCardsTask } from "../../src/scheduler/tasks.js";
+import { AccessList } from "../../src/services/accessService.js";
 import { updateCampaign } from "../../src/services/campaignService.js";
 import { setupServerCalendar } from "../../src/services/guildService.js";
 import { respondToSession } from "../../src/services/rsvpService.js";
@@ -90,7 +91,7 @@ beforeEach(async () => {
   now = new Date("2026-10-01T12:00:00Z");
   const log = logger.child({}, { level: "silent" });
   const publisher = new Publisher(discord.client, db, log, () => now);
-  ctx = { db, publisher, log, now: () => now };
+  ctx = { db, publisher, access: new AccessList(), log, now: () => now };
 });
 afterEach(async () => {
   await db.close();

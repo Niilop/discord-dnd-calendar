@@ -41,7 +41,7 @@ export const availabilityCommand: SlashCommand = {
   name: data.name,
   toJSON: () => data.toJSON(),
   async execute(i, ctx) {
-    const actor = actorFrom(i);
+    const actor = actorFrom(i, ctx);
     if (i.options.getSubcommand() === "edit") {
       const settings = await requireGuildSettings(ctx.db, i.guildId);
       const month = parseMonthOption(i, settings.timezone, ctx.now());

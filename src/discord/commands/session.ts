@@ -86,7 +86,7 @@ type Handler = (i: ChatInputCommandInteraction<"cached">, ctx: AppContext) => Pr
 
 const handlers: Record<string, Handler> = {
   async add(i, ctx) {
-    const actor = actorFrom(i);
+    const actor = actorFrom(i, ctx);
     const settings = await requireGuildSettings(ctx.db, i.guildId);
     const month = parseMonthOption(i, settings.timezone, ctx.now());
     const campaignId = i.options.getString("campaign") ? await resolveCampaignId(i, ctx) : 0;
@@ -98,7 +98,7 @@ const handlers: Record<string, Handler> = {
     await i.deferReply(ephemeral);
     const { session, campaign } = await createSession(
       ctx.db,
-      actorFrom(i),
+      actorFrom(i, ctx),
       campaignId,
       {
         title: i.options.getString("title"),
@@ -121,7 +121,7 @@ const handlers: Record<string, Handler> = {
     await i.deferReply(ephemeral);
     const { session, campaign, timeChanged, moved } = await editSession(
       ctx.db,
-      actorFrom(i),
+      actorFrom(i, ctx),
       sessionIdOption(i),
       {
         campaignId: moveTo,
@@ -141,13 +141,13 @@ const handlers: Record<string, Handler> = {
 
   async cancel(i, ctx) {
     await i.deferReply(ephemeral);
-    const { session, campaign } = await cancelSession(ctx.db, actorFrom(i), sessionIdOption(i), i.options.getString("reason"));
+    const { session, campaign } = await cancelSession(ctx.db, actorFrom(i, ctx), sessionIdOption(i), i.options.getString("reason"));
     await afterSessionCancelled(ctx, campaign, session);
     await i.editReply(`✅ Cancelled **${sessionHeading(campaign, session)}**.`);
   },
 
   async list(i, ctx) {
-    const actor = actorFrom(i);
+    const actor = actorFrom(i, ctx);
     const campaignId = await resolveCampaignId(i, ctx);
     const { campaign } = await authorize(ctx.db, actor, campaignId, "campaign.view");
     const upcoming = (await listUpcomingForActor(ctx.db, actor, "campaign.view", ctx.now())).filter(
@@ -165,7 +165,7 @@ const handlers: Record<string, Handler> = {
   },
 
   async responses(i, ctx) {
-    const { session } = await loadSession(ctx.db, actorFrom(i), sessionIdOption(i), "session.viewResponses");
+    const { session } = await loadSession(ctx.db, actorFrom(i, ctx), sessionIdOption(i), "session.viewResponses");
     const overview = (await getSessionOverview(ctx.db, session.id))!;
     const remind = new ActionRowBuilder<ButtonBuilder>().addComponents(
       new ButtonBuilder()

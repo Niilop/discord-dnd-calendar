@@ -113,7 +113,7 @@ const handlers: Record<string, Handler> = {
     if (dm.bot) throw new UserError("A bot can't be the DM.");
 
     await i.deferReply(ephemeral);
-    const campaign = await createCampaign(ctx.db, actorFrom(i), {
+    const campaign = await createCampaign(ctx.db, actorFrom(i, ctx), {
       name: i.options.getString("name", true),
       rsvpChannelId: reminderChannel?.id ?? null,
       currentSession: i.options.getInteger("current_session"),
@@ -139,7 +139,7 @@ const handlers: Record<string, Handler> = {
     const noReminders = i.options.getBoolean("no_reminders") === true;
 
     await i.deferReply(ephemeral);
-    const campaign = await updateCampaign(ctx.db, actorFrom(i), campaignId, {
+    const campaign = await updateCampaign(ctx.db, actorFrom(i, ctx), campaignId, {
       name: i.options.getString("name") ?? undefined,
       rsvpChannelId: noReminders ? null : reminderChannel?.id,
       currentSession: i.options.getInteger("current_session") ?? undefined,
@@ -149,18 +149,18 @@ const handlers: Record<string, Handler> = {
     });
     await ctx.publisher.refreshCalendar(campaign.guildId);
     await ctx.publisher.refreshGuildCards(campaign.guildId); // name, color and numbers show on the cards
-    const { members, role } = await getCampaignOverview(ctx.db, actorFrom(i), campaign.id);
+    const { members, role } = await getCampaignOverview(ctx.db, actorFrom(i, ctx), campaign.id);
     await i.editReply({ content: "✅ Campaign updated.", embeds: [renderCampaignInfo(campaign, members, role)] });
   },
 
   async info(i, ctx) {
     const campaignId = await resolveCampaignId(i, ctx);
-    const { campaign, members, role } = await getCampaignOverview(ctx.db, actorFrom(i), campaignId);
+    const { campaign, members, role } = await getCampaignOverview(ctx.db, actorFrom(i, ctx), campaignId);
     await i.reply({ ...ephemeral, embeds: [renderCampaignInfo(campaign, members, role)], allowedMentions: { parse: [] } });
   },
 
   async list(i, ctx) {
-    const visible = await listVisibleCampaigns(ctx.db, actorFrom(i));
+    const visible = await listVisibleCampaigns(ctx.db, actorFrom(i, ctx));
     const lines = visible.map(
       ({ campaign, role }) =>
         `${colorEmoji(campaign.color)} **${campaign.name}** — ${role ?? "not a member"}` +
@@ -173,7 +173,7 @@ const handlers: Record<string, Handler> = {
     const user = i.options.getUser("user", true);
     if (user.bot) throw new UserError("Bots can't be campaign members.");
     const campaignId = await resolveCampaignId(i, ctx);
-    const { campaign, previousRole } = await addMember(ctx.db, actorFrom(i), campaignId, user.id, "player");
+    const { campaign, previousRole } = await addMember(ctx.db, actorFrom(i, ctx), campaignId, user.id, "player");
     ctx.publisher.scheduleCalendarRefresh(campaign.guildId);
     await i.reply({
       ...ephemeral,
@@ -185,7 +185,7 @@ const handlers: Record<string, Handler> = {
     const user = i.options.getUser("user", true);
     if (user.bot) throw new UserError("Bots can't be campaign members.");
     const campaignId = await resolveCampaignId(i, ctx);
-    const { campaign } = await addMember(ctx.db, actorFrom(i), campaignId, user.id, "admin");
+    const { campaign } = await addMember(ctx.db, actorFrom(i, ctx), campaignId, user.id, "admin");
     ctx.publisher.scheduleCalendarRefresh(campaign.guildId);
     await i.reply({ ...ephemeral, content: `✅ <@${user.id}> is now a DM/admin of **${campaign.name}**.` });
   },
@@ -193,7 +193,7 @@ const handlers: Record<string, Handler> = {
   async "remove-member"(i, ctx) {
     const user = i.options.getUser("user", true);
     const campaignId = await resolveCampaignId(i, ctx);
-    const { campaign } = await removeMember(ctx.db, actorFrom(i), campaignId, user.id, ctx.now());
+    const { campaign } = await removeMember(ctx.db, actorFrom(i, ctx), campaignId, user.id, ctx.now());
     ctx.publisher.scheduleCalendarRefresh(campaign.guildId);
     await i.reply({
       ...ephemeral,
@@ -204,7 +204,7 @@ const handlers: Record<string, Handler> = {
   async delete(i, ctx) {
     const campaignId = await resolveCampaignId(i, ctx);
     await i.deferReply(ephemeral);
-    const { campaign, cards } = await deleteCampaign(ctx.db, actorFrom(i), campaignId, i.options.getString("confirm_name", true));
+    const { campaign, cards } = await deleteCampaign(ctx.db, actorFrom(i, ctx), campaignId, i.options.getString("confirm_name", true));
     await ctx.publisher.deleteCards(cards);
     await ctx.publisher.refreshCalendar(campaign.guildId);
     await i.editReply(`🗑️ Deleted **${campaign.name}** and all of its sessions and RSVPs.`);

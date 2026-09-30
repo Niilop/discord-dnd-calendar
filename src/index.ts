@@ -8,6 +8,7 @@ import { Publisher } from "./discord/publisher.js";
 import { createInteractionHandler } from "./discord/router.js";
 import { startHealthServer } from "./health.js";
 import { logger } from "./logger.js";
+import { AccessList } from "./services/accessService.js";
 import { Scheduler } from "./scheduler/scheduler.js";
 
 const SHUTDOWN_TIMEOUT_MS = 20_000;
@@ -52,7 +53,10 @@ async function main(): Promise<void> {
     rest: { retries: 3, timeout: 15_000 },
   });
   const publisher = new Publisher(client, db, logger);
-  const ctx: AppContext = { db, publisher, log: logger, now: () => new Date() };
+  const access = new AccessList(new Set(config.botAdminUserIds));
+  await access.load(db);
+  logger.info({ botAdmins: config.botAdminUserIds.length }, "access list loaded");
+  const ctx: AppContext = { db, publisher, access, log: logger, now: () => new Date() };
   const scheduler = new Scheduler(ctx, config.schedulerIntervalSeconds * 1000);
 
   const handleInteraction = createInteractionHandler(ctx);

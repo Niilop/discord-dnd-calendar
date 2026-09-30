@@ -31,7 +31,7 @@ A reschedule or cancellation doesn't post a notice. The session's card is repost
 
 ### Permissions
 
-| | Server admin (Manage Server) | Campaign DM/admin | Player |
+| | Server admin / calendar manager / bot admin | Campaign DM/admin | Player |
 |---|:-:|:-:|:-:|
 | Create / delete campaigns | ✅ | | |
 | Add / remove DMs | ✅ | | |
@@ -39,7 +39,12 @@ A reschedule or cancellation doesn't post a notice. The session's card is repost
 | Create / edit / cancel / move sessions, see who responded | ✅ | ✅ (both campaigns, to move) | |
 | See *who* is unavailable on a day | ✅ | ✅ | ✅ |
 | Set **own** availability, RSVP | if member | ✅ | ✅ |
-| Set up the server calendar | ✅ | | |
+| Set up the server calendar, add / remove calendar managers | ✅ | | |
+
+Full access (the first column) comes from any of:
+- **Manage Server** (or Administrator) in Discord;
+- being a **calendar manager** on that server: `/calendar manager-add user`, usable by anyone with full access, so it needs no Discord admin rights;
+- being a **bot admin**: listed in `BOT_ADMIN_USER_IDS` in the host's `.env`, full access on every server the bot is in. Can't be removed from Discord.
 
 Every mutation re-checks permission against the current database state and the member's live Discord permissions.
 
@@ -49,6 +54,7 @@ Every mutation re-checks permission against the current database state and the m
 |---|---|---|
 | `/calendar setup channel timezone` | server admin | Choose the calendar channel and the server timezone; posts the calendar |
 | `/calendar show [month]` · `/calendar refresh` | everyone · DM | Private calendar view · re-post the calendar message |
+| `/calendar manager-add user` · `manager-remove user` · `managers` | full access · everyone | Give or take full calendar rights on this server · list who has them |
 | `/campaign create name color [dm] [reminder_channel] [current_session]` | server admin | Create a campaign, e.g. `color: red` or `color: #8e4ec6` |
 | `/campaign edit campaign [name] [color] [reminder_channel] [no_reminders] [current_session] [reminder_hours] [reminder_pings]` | DM | Change settings, e.g. `current_session: 12` or `reminder_pings: true` |
 | `/campaign add-player user` · `add-dm user` · `remove-member user` | DM / server admin | Membership |

@@ -12,12 +12,12 @@ import { sessionCalendarView } from "../views.js";
 type SessionRef = { sessionId: number };
 
 export async function handleSessionView(i: ButtonInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  await i.update(asEdit(await sessionCalendarView(ctx, actorFrom(i), id.sessionId)));
+  await i.update(asEdit(await sessionCalendarView(ctx, actorFrom(i, ctx), id.sessionId)));
 }
 
 /** Moves the session to another campaign: its color on the calendar changes with it. */
 export async function handleSessionCampaign(i: StringSelectMenuInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  const actor = actorFrom(i);
+  const actor = actorFrom(i, ctx);
   const target = Number(i.values[0]);
   const result = await editSession(ctx.db, actor, id.sessionId, { campaignId: target }, ctx.now());
   await afterSessionEdited(ctx, result.campaign, result.session, false);
@@ -28,7 +28,7 @@ export async function handleSessionCampaign(i: StringSelectMenuInteraction<"cach
 }
 
 export async function handleSessionTime(i: ButtonInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  await loadSession(ctx.db, actorFrom(i), id.sessionId, "session.edit");
+  await loadSession(ctx.db, actorFrom(i, ctx), id.sessionId, "session.edit");
   const overview = await getSessionOverview(ctx.db, id.sessionId);
   if (!overview) throw new UserError("That session doesn't exist anymore.");
   await i.showModal(renderSessionTimeModal(overview));
@@ -36,7 +36,7 @@ export async function handleSessionTime(i: ButtonInteraction<"cached">, id: Sess
 
 export async function handleSessionTimeSet(i: ModalSubmitInteraction<"cached">, id: SessionRef, ctx: AppContext) {
   if (!i.isFromMessage()) throw new UserError("This form has expired. Open the session again.");
-  const actor = actorFrom(i);
+  const actor = actorFrom(i, ctx);
   const field = (name: string) => i.fields.getTextInputValue(name).trim();
   const result = await editSession(
     ctx.db,
@@ -57,11 +57,11 @@ export async function handleSessionTimeSet(i: ModalSubmitInteraction<"cached">, 
 }
 
 export async function handleSessionCancel(i: ButtonInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  await i.update(asEdit(await sessionCalendarView(ctx, actorFrom(i), id.sessionId, { confirmingCancel: true })));
+  await i.update(asEdit(await sessionCalendarView(ctx, actorFrom(i, ctx), id.sessionId, { confirmingCancel: true })));
 }
 
 export async function handleSessionConfirmCancel(i: ButtonInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  const actor = actorFrom(i);
+  const actor = actorFrom(i, ctx);
   const { session, campaign } = await cancelSession(ctx.db, actor, id.sessionId);
   await i.deferUpdate();
   await afterSessionCancelled(ctx, campaign, session);
@@ -70,7 +70,7 @@ export async function handleSessionConfirmCancel(i: ButtonInteraction<"cached">,
 
 /** "Remind non-responders now" from /session responses. */
 export async function handleRemindNow(i: ButtonInteraction<"cached">, id: SessionRef, ctx: AppContext) {
-  const { session, campaign } = await loadSession(ctx.db, actorFrom(i), id.sessionId, "session.edit");
+  const { session, campaign } = await loadSession(ctx.db, actorFrom(i, ctx), id.sessionId, "session.edit");
   if (session.status !== "scheduled" || session.startsAt <= ctx.now()) throw new UserError("This session is no longer upcoming.");
   if (!campaign.rsvpChannelId) throw new UserError("This campaign has no reminder channel. Set one with `/campaign edit reminder_channel`.");
   await i.deferUpdate();

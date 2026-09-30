@@ -49,7 +49,7 @@ export async function resolveCampaignId(
 ): Promise<number> {
   const raw = interaction.options.getString(optionName)?.trim();
   if (raw && /^\d+$/.test(raw)) return Number(raw);
-  const visible = await listVisibleCampaigns(ctx.db, actorFrom(interaction));
+  const visible = await listVisibleCampaigns(ctx.db, actorFrom(interaction, ctx));
   if (raw) {
     const match = visible.find((c) => c.campaign.name.toLowerCase() === raw.toLowerCase());
     if (!match) throw new UserError(`No campaign called "${raw}" that you can access.`);
@@ -70,7 +70,7 @@ export async function autocompleteCampaign(
   ctx: AppContext,
   action: Action,
 ): Promise<ApplicationCommandOptionChoiceData[]> {
-  const actor = actorFrom(interaction);
+  const actor = actorFrom(interaction, ctx);
   const query = interaction.options.getFocused().toLowerCase();
   return (await listVisibleCampaigns(ctx.db, actor))
     .filter((c) => can(actor, c.role, action) && c.campaign.name.toLowerCase().includes(query))
@@ -84,7 +84,7 @@ export async function autocompleteSession(
   action: Action,
 ): Promise<ApplicationCommandOptionChoiceData[]> {
   const query = interaction.options.getFocused().toLowerCase();
-  const upcoming = await listUpcomingForActor(ctx.db, actorFrom(interaction), action, ctx.now());
+  const upcoming = await listUpcomingForActor(ctx.db, actorFrom(interaction, ctx), action, ctx.now());
   return upcoming
     .map(({ session, campaign }) => ({
       name: truncate(
@@ -133,7 +133,7 @@ export async function autocompleteDate(
   ctx: AppContext,
 ): Promise<ApplicationCommandOptionChoiceData[]> {
   const typed = interaction.options.getFocused().trim();
-  const actor = actorFrom(interaction);
+  const actor = actorFrom(interaction, ctx);
   let campaign: Campaign | null = null;
   try {
     const id = await resolveCampaignId(interaction, ctx);

@@ -3,6 +3,8 @@ export interface Config {
   discordApplicationId: string;
   /** When set, commands are registered to this guild only (instant updates while developing). */
   devGuildId: string | undefined;
+  /** Discord user IDs with full access on every server the bot is in. */
+  botAdminUserIds: string[];
   databaseUrl: string;
   logLevel: string;
   healthPort: number;
@@ -23,6 +25,13 @@ function integer(env: NodeJS.ProcessEnv, name: string, fallback: number): number
   return value;
 }
 
+function userIds(env: NodeJS.ProcessEnv, name: string): string[] {
+  const ids = (env[name] ?? "").split(/[\s,]+/).filter(Boolean);
+  const bad = ids.find((id) => !/^\d{15,21}$/.test(id));
+  if (bad) throw new Error(`${name} must be Discord user IDs separated by commas; "${bad}" isn't one`);
+  return ids;
+}
+
 export function loadDatabaseUrl(env: NodeJS.ProcessEnv = process.env): string {
   return required(env, "DATABASE_URL");
 }
@@ -32,6 +41,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     discordToken: required(env, "DISCORD_TOKEN"),
     discordApplicationId: required(env, "DISCORD_APPLICATION_ID"),
     devGuildId: env.DISCORD_DEV_GUILD_ID?.trim() || undefined,
+    botAdminUserIds: userIds(env, "BOT_ADMIN_USER_IDS"),
     databaseUrl: loadDatabaseUrl(env),
     logLevel: env.LOG_LEVEL?.trim() || "info",
     healthPort: integer(env, "HEALTH_PORT", 8080),

@@ -24,7 +24,10 @@ export type Action =
 export interface Actor {
   userId: string;
   guildId: string;
-  /** Has Manage Server (or Administrator) in the guild, as reported by Discord on this interaction. */
+  /**
+   * Full access on this server: Manage Server (or Administrator) in Discord,
+   * a bot admin (BOT_ADMIN_USER_IDS) or one of the server's calendar managers.
+   */
   isGuildAdmin: boolean;
 }
 
@@ -62,8 +65,8 @@ const DENIAL_MESSAGES: Partial<Record<Action, string>> = {
   "session.create": "Only the campaign's DMs/admins can create sessions.",
   "session.edit": "Only the campaign's DMs/admins can edit sessions.",
   "session.cancel": "Only the campaign's DMs/admins can cancel sessions.",
-  "members.manageAdmins": "Only server administrators can add or remove campaign DMs/admins.",
-  "campaign.delete": "Only server administrators can delete campaigns.",
+  "members.manageAdmins": "Only server admins and calendar managers can add or remove campaign DMs/admins.",
+  "campaign.delete": "Only server admins and calendar managers can delete campaigns.",
 };
 
 export function assertCan(actor: Actor, role: MemberRole | null, action: Action): void {

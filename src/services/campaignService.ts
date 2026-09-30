@@ -58,7 +58,7 @@ function checkSessionNumber(n: number): number {
 
 export async function createCampaign(db: Db, actor: Actor, input: CreateCampaignInput): Promise<Campaign> {
   if (!actor.isGuildAdmin) {
-    throw new PermissionDeniedError("Only server administrators (Manage Server) can create campaigns.");
+    throw new PermissionDeniedError("Only server admins and calendar managers can create campaigns.");
   }
   const name = normalizeName(input.name);
   const currentSession = checkSessionNumber(input.currentSession ?? 0);
